@@ -45,6 +45,11 @@
         launcher:logIdOn="613"
         launcher:logIdOff="614" />
 
+    <SwitchPreference
+        android:key="pref_allow_phone_overview_grid"
+        android:title="@string/pref_allow_phone_overview_grid"
+        android:summary="@string/pref_allow_phone_overview_grid_desc" />
+
     <!--
       LAUNCHER_HOME_SCREEN_ROTATION_ENABLED(615)
       LAUNCHER_HOME_SCREEN_ROTATION_DISABLED(616)
