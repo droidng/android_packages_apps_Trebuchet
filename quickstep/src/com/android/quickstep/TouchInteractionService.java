@@ -366,7 +366,7 @@ public class TouchInteractionService extends Service
         mAM = ActivityManagerWrapper.getInstance();
         mDeviceState = new RecentsAnimationDeviceState(this, true);
         mDisplayManager = getSystemService(DisplayManager.class);
-        mTaskbarManager = new TaskbarManager(this);
+        mTaskbarManager = new TaskbarManager(this, mDeviceState.getDisplayId());
         mRotationTouchHelper = mDeviceState.getRotationTouchHelper();
 
         // Call runOnUserUnlocked() before any other callbacks to ensure everything is initialized.

@@ -167,6 +167,12 @@
             android:name="com.android.launcher3.secondarydisplay.SecondaryDisplayLauncher"
             android:theme="@style/AppTheme"
             android:launchMode="singleTop"
+            android:stateNotNeeded="true"
+            android:windowSoftInputMode="adjustPan"
+            android:screenOrientation="unspecified"
+            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
+            android:resizeableActivity="true"
+            android:resumeWhilePausing="true"
             android:exported="true"
             android:enabled="true">
             <intent-filter>

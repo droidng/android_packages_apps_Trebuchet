@@ -87,11 +87,11 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
 
     private boolean mUserUnlocked = false;
 
-    public TaskbarManager(TouchInteractionService service) {
+    public TaskbarManager(TouchInteractionService service, int displayId) {
         mDisplayController = DisplayController.INSTANCE.get(service);
         mSysUINavigationMode = SysUINavigationMode.INSTANCE.get(service);
         Display display =
-                service.getSystemService(DisplayManager.class).getDisplay(DEFAULT_DISPLAY);
+                service.getSystemService(DisplayManager.class).getDisplay(displayId);
         mContext = service.createWindowContext(display, TYPE_NAVIGATION_BAR_PANEL, null);
         mNavButtonController = new TaskbarNavButtonController(service,
                 SystemUiProxy.INSTANCE.get(mContext), new Handler());
