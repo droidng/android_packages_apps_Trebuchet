@@ -57,23 +57,27 @@ import com.android.systemui.unfold.util.ScopedUnfoldTransitionProgressProvider;
  * Class to manage taskbar lifecycle
  */
 public class TaskbarManager implements DisplayController.DisplayInfoChangeListener,
-        SysUINavigationMode.NavigationModeChangeListener {
+        SysUINavigationMode.NavigationModeChangeListener, DisplayManager.DisplayListener {
 
     private static final Uri USER_SETUP_COMPLETE_URI = Settings.Secure.getUriFor(
             Settings.Secure.USER_SETUP_COMPLETE);
 
-    private final Context mContext;
+    private Context mContext;
+    private final boolean mPreferSecondary;
+    private final DisplayManager mDm;
     private final DisplayController mDisplayController;
     private final SysUINavigationMode mSysUINavigationMode;
-    private final TaskbarNavButtonController mNavButtonController;
-    private final SettingsCache.OnChangeListener mUserSetupCompleteListener;
-    private final ComponentCallbacks mComponentCallbacks;
-    private final SimpleBroadcastReceiver mShutdownReceiver;
+    private final TouchInteractionService mService;
+    private TaskbarNavButtonController mNavButtonController;
+    private SettingsCache.OnChangeListener mUserSetupCompleteListener;
+    private ComponentCallbacks mComponentCallbacks;
+    private SimpleBroadcastReceiver mShutdownReceiver;
 
     // The source for this provider is set when Launcher is available
     private final ScopedUnfoldTransitionProgressProvider mUnfoldProgressProvider =
             new ScopedUnfoldTransitionProgressProvider();
 
+    private int mDisplayId = Display.DEFAULT_DISPLAY;
     private TaskbarActivityContext mTaskbarActivityContext;
     private StatefulActivity mActivity;
     /**
@@ -88,14 +92,99 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
     private boolean mUserUnlocked = false;
 
     public TaskbarManager(TouchInteractionService service) {
-        mDisplayController = DisplayController.INSTANCE.get(service);
-        mSysUINavigationMode = SysUINavigationMode.INSTANCE.get(service);
-        Display display =
-                service.getSystemService(DisplayManager.class).getDisplay(DEFAULT_DISPLAY);
-        mContext = service.createWindowContext(display, TYPE_NAVIGATION_BAR_PANEL, null);
-        mNavButtonController = new TaskbarNavButtonController(service,
-                SystemUiProxy.INSTANCE.get(mContext), new Handler());
+        mService = service;
+        mPreferSecondary = true; //TODO: load from setting
+        mDisplayController = DisplayController.INSTANCE.get(mService);
+        mSysUINavigationMode = SysUINavigationMode.INSTANCE.get(mService);
+        mDisplayController.addChangeListener(this);
+        mSysUINavigationMode.addModeChangeListener(this);
+        mDm = service.getSystemService(DisplayManager.class);
+        mDm.registerDisplayListener(this, null);
+        mDisplayId = findScreen();
+        taskbarMoveDisplay(mDisplayId);
+    }
+
+    @Override
+    public void onNavigationModeChanged(Mode newMode) {
+        recreateTaskbar();
+    }
+
+    @Override
+    public void onDisplayInfoChanged(Context context, Info info, int flags) {
+        if ((flags & CHANGE_FLAGS) != 0) {
+            recreateTaskbar();
+        }
+    }
+
+    @Override
+    public void onDisplayAdded(int displayId) {
+        if (mPreferSecondary) {
+            if (isDesktopScreen(mDm.getDisplay(displayId)))
+               taskbarMoveDisplay(displayId);
+        }
+    }
+
+    @Override
+    public void onDisplayChanged(int displayId) {
+        // Unused
+    }
+
+    @Override
+    public void onDisplayRemoved(int displayId) {
+        if (mDisplayId == displayId) {
+            taskbarMoveDisplay(findScreen());
+        }
+    }
+
+    private boolean isDesktopScreen(Display d) {
+        if (d == null)
+            return false;
+        if (!d.isValid())
+            return false;
+        if (d.getDisplayId() == Display.DEFAULT_DISPLAY)
+            return false;
+        if ((d.getFlags() & Display.FLAG_PRIVATE) > 0) // enforce display to be public, private displays should be left alone
+            return false;
+        if ((d.getFlags() & Display.FLAG_SECURE) == 0) // enforce display to be secure to ensure it's system level
+            return false;
+        return true;
+    }
+
+    private int findScreen() {
+        int canidate = Display.DEFAULT_DISPLAY;
+        if (mPreferSecondary) {
+            for (Display d : mDm.getDisplays()) {
+                if (isDesktopScreen(d))
+                    canidate = d.getDisplayId();
+            }
+        }
+        return canidate;
+    }
+
+    private void taskbarMoveDisplay(int newDisplayId) {
+        destroyExistingTaskbar();
+
+        int oldDisplayId = mDisplayId;
+        mDisplayId = newDisplayId;
+        if (mContext != null) {
+            mContext.unregisterComponentCallbacks(mComponentCallbacks);
+            SettingsCache.INSTANCE.get(mContext).unregister(USER_SETUP_COMPLETE_URI,
+                  mUserSetupCompleteListener);
+            try {
+                mContext.unregisterReceiver(mShutdownReceiver);
+            } catch (IllegalArgumentException ignored) {}
+        }
+
+        Display display = mDm.getDisplay(mDisplayId);
+        mContext = mService.createWindowContext(display, TYPE_NAVIGATION_BAR_PANEL, null);
+
+        mShutdownReceiver = new SimpleBroadcastReceiver(i -> destroyExistingTaskbar());
+        mShutdownReceiver.register(mContext, Intent.ACTION_SHUTDOWN);
+
         mUserSetupCompleteListener = isUserSetupComplete -> recreateTaskbar();
+        SettingsCache.INSTANCE.get(mContext).register(USER_SETUP_COMPLETE_URI,
+                mUserSetupCompleteListener);
+
         mComponentCallbacks = new ComponentCallbacks() {
             private Configuration mOldConfig = mContext.getResources().getConfiguration();
 
@@ -126,28 +215,12 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
             @Override
             public void onLowMemory() { }
         };
-        mShutdownReceiver = new SimpleBroadcastReceiver(i -> destroyExistingTaskbar());
-
-        mDisplayController.addChangeListener(this);
-        mSysUINavigationMode.addModeChangeListener(this);
-        SettingsCache.INSTANCE.get(mContext).register(USER_SETUP_COMPLETE_URI,
-                mUserSetupCompleteListener);
         mContext.registerComponentCallbacks(mComponentCallbacks);
-        mShutdownReceiver.register(mContext, Intent.ACTION_SHUTDOWN);
+
+        mNavButtonController = new TaskbarNavButtonController(mService,
+                SystemUiProxy.INSTANCE.get(mContext), new Handler());
 
         recreateTaskbar();
-    }
-
-    @Override
-    public void onNavigationModeChanged(Mode newMode) {
-        recreateTaskbar();
-    }
-
-    @Override
-    public void onDisplayInfoChanged(Context context, Info info, int flags) {
-        if ((flags & CHANGE_FLAGS) != 0) {
-            recreateTaskbar();
-        }
     }
 
     private void destroyExistingTaskbar() {
@@ -267,12 +340,14 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
     }
 
     public void disableNavBarElements(int displayId, int state1, int state2, boolean animate) {
+        if (displayId != mDisplayId) return;
         if (mTaskbarActivityContext != null) {
             mTaskbarActivityContext.disableNavBarElements(displayId, state1, state2, animate);
         }
     }
 
     public void onSystemBarAttributesChanged(int displayId, int behavior) {
+        if (displayId != mDisplayId) return;
         if (mTaskbarActivityContext != null) {
             mTaskbarActivityContext.onSystemBarAttributesChanged(displayId, behavior);
         }
