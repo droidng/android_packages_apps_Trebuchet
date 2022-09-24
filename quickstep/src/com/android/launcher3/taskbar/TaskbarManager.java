@@ -119,8 +119,11 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
     @Override
     public void onDisplayAdded(int displayId) {
         if (mPreferSecondary) {
-            if (isDesktopScreen(mDm.getDisplay(displayId)))
-               taskbarMoveDisplay(displayId);
+            if (isDesktopScreen(mDm.getDisplay(displayId))) {
+                //if (mDisplayId == Display.DEFAULT_DISPLAY)
+                //    System.exit(0); // Taskbar has to rdeattach from main Launcher activity.
+                taskbarMoveDisplay(displayId);
+            }
         }
     }
 
@@ -132,6 +135,8 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
     @Override
     public void onDisplayRemoved(int displayId) {
         if (mDisplayId == displayId) {
+            if (findScreen() == Display.DEFAULT_DISPLAY)
+                System.exit(0); // Taskbar has to re-attach to main Launcher activity.
             taskbarMoveDisplay(findScreen());
         }
     }
@@ -203,7 +208,7 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
                                 ? LauncherAppState.getIDP(mContext).getDeviceProfile(mContext)
                                 : null;
 
-                        if (dp != null && dp.isTaskbarPresent) {
+                        if (dp != null && dp.isTaskbarEnabled) {
                             mTaskbarActivityContext.updateDeviceProfile(dp.copy(mContext));
                         }
                         mTaskbarActivityContext.onConfigurationChanged(configDiff);
@@ -242,6 +247,9 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
      * Sets a {@link StatefulActivity} to act as taskbar callback
      */
     public void setActivity(@NonNull StatefulActivity activity) {
+        if (activity.getDisplay() == null || activity.getDisplay().getDisplayId() != mDisplayId)
+            return;
+
         mActivity = activity;
         mUnfoldProgressProvider.setSourceProvider(getUnfoldTransitionProgressProviderForActivity(
                 activity));
@@ -297,7 +305,7 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
                 mUserUnlocked ? LauncherAppState.getIDP(mContext).getDeviceProfile(mContext) : null;
 
         boolean isTaskBarEnabled =
-                FeatureFlags.ENABLE_TASKBAR.get() && dp != null && dp.isTaskbarPresent;
+                FeatureFlags.ENABLE_TASKBAR.get() && dp != null && dp.isTaskbarEnabled;
 
         SystemUiProxy sysui = SystemUiProxy.INSTANCE.get(mContext);
         sysui.setTaskbarEnabled(isTaskBarEnabled);
@@ -374,5 +382,9 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
 
     public @Nullable TaskbarActivityContext getCurrentActivityContext() {
         return mTaskbarActivityContext;
+    }
+
+    public int getDisplayId() {
+        return mDisplayId;
     }
 }

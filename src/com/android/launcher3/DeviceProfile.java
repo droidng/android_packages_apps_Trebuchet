@@ -30,7 +30,9 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.hardware.display.DisplayManager;
 import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.Surface;
 
 import com.android.launcher3.CellLayout.ContainerType;
@@ -218,6 +220,7 @@ public class DeviceProfile {
 
     // Taskbar
     public boolean isTaskbarPresent;
+    public boolean isTaskbarEnabled;
     // Whether Taskbar will inset the bottom of apps by taskbarSize.
     public boolean isTaskbarPresentInApps;
     public int taskbarSize;
@@ -277,8 +280,9 @@ public class DeviceProfile {
         hotseatQsbHeight = res.getDimensionPixelSize(R.dimen.qsb_widget_height);
         boolean isTaskBarEnabled = LineageSettings.System.getInt(context.getContentResolver(),
                 LineageSettings.System.ENABLE_TASKBAR, isTablet ? 1 : 0) == 1;
-        isTaskbarPresent = isTaskBarEnabled && ApiWrapper.TASKBAR_DRAWN_IN_PROCESS
+        isTaskbarEnabled = isTaskBarEnabled && ApiWrapper.TASKBAR_DRAWN_IN_PROCESS
                 && FeatureFlags.ENABLE_TASKBAR.get();
+        isTaskbarPresent = isTaskbarEnabled && isTaskbarOnDisplay0(context);
         SharedPreferences prefs = Utilities.getPrefs(context);
         if (isTaskbarPresent) {
             taskbarSize = res.getDimensionPixelSize(R.dimen.taskbar_size);
@@ -1040,6 +1044,28 @@ public class DeviceProfile {
                 // ??
                 return 0;
         }
+    }
+
+    private boolean isTaskbarOnDisplay0(Context context) {
+        boolean preferSecondaryTaskbar = true; //TODO: load from setting
+        if (preferSecondaryTaskbar) {
+            DisplayManager dm = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+            for (Display d : dm.getDisplays()) {
+                // keep in sync with TaskbarManager
+                if (d == null)
+                    continue;
+                if (!d.isValid())
+                    continue;
+                if (d.getDisplayId() == Display.DEFAULT_DISPLAY)
+                    continue;
+                if ((d.getFlags() & Display.FLAG_PRIVATE) > 0) // enforce display to be public, private displays should be left alone
+                    continue;
+                if ((d.getFlags() & Display.FLAG_SECURE) == 0) // enforce display to be secure to ensure it's system level
+                    continue;
+                return false;
+            }
+        }
+        return true;
     }
 
     private String pxToDpStr(String name, float value) {
