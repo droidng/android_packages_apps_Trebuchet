@@ -713,7 +713,7 @@ public class TouchInteractionService extends Service
             // If Taskbar is present, we listen for long press to unstash it.
             BaseActivityInterface activityInterface = newGestureState.getActivityInterface();
             StatefulActivity activity = activityInterface.getCreatedActivity();
-            if (activity != null && activity.getDeviceProfile().isTaskbarEnabled) {
+            if (activity != null && activity.getDeviceProfile().isTaskbarPresent) {
                 base = new TaskbarStashInputConsumer(this, base, mInputMonitorCompat,
                         mTaskbarManager.getCurrentActivityContext());
             }

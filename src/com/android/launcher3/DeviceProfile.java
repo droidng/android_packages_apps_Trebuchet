@@ -280,9 +280,9 @@ public class DeviceProfile {
         hotseatQsbHeight = res.getDimensionPixelSize(R.dimen.qsb_widget_height);
         boolean isTaskBarEnabled = LineageSettings.System.getInt(context.getContentResolver(),
                 LineageSettings.System.ENABLE_TASKBAR, isTablet ? 1 : 0) == 1;
-        isTaskbarEnabled = isTaskBarEnabled && ApiWrapper.TASKBAR_DRAWN_IN_PROCESS
+        isTaskbarPresent = isTaskBarEnabled && ApiWrapper.TASKBAR_DRAWN_IN_PROCESS
                 && FeatureFlags.ENABLE_TASKBAR.get();
-        isTaskbarPresent = isTaskbarEnabled && isTaskbarOnDisplay0(context);
+        isTaskbarEnabled = isTaskbarPresent && isTaskbarOnDisplay0(context);
         SharedPreferences prefs = Utilities.getPrefs(context);
         if (isTaskbarPresent) {
             taskbarSize = res.getDimensionPixelSize(R.dimen.taskbar_size);
@@ -901,7 +901,7 @@ public class DeviceProfile {
                 mHotseatPadding.set(hotseatBarSidePaddingEndPx, mInsets.top,
                         mInsets.right + hotseatBarSidePaddingStartPx, mInsets.bottom);
             }
-        } else if (isTaskbarPresent) {
+        } else if (isTaskbarEnabled) {
             int hotseatHeight = workspacePadding.bottom;
             int taskbarOffset = getTaskbarOffsetY();
             int hotseatTopDiff = hotseatHeight - taskbarOffset;
@@ -949,16 +949,16 @@ public class DeviceProfile {
      * Returns the number of pixels the QSB is translated from the bottom of the screen.
      */
     public int getQsbOffsetY() {
-        int freeSpace = isTaskbarPresent
+        int freeSpace = isTaskbarEnabled
                 ? workspacePadding.bottom
                 : hotseatBarSizePx - hotseatCellHeightPx - hotseatQsbHeight;
 
         if (isScalableGrid && qsbBottomMarginPx > mInsets.bottom) {
             // Note that taskbarSize = 0 unless isTaskbarPresent.
-            return Math.min(qsbBottomMarginPx + taskbarSize, freeSpace);
+            return Math.min(qsbBottomMarginPx + (isTaskbarEnabled ? taskbarSize : 0), freeSpace);
         } else {
             return (int) (freeSpace * QSB_CENTER_FACTOR)
-                    + (isTaskbarPresent ? taskbarSize : mInsets.bottom);
+                    + (isTaskbarEnabled ? taskbarSize : mInsets.bottom);
         }
     }
 
@@ -981,7 +981,7 @@ public class DeviceProfile {
                     mInsets.top + availableHeightPx);
         } else {
             // Folders should only appear below the drop target bar and above the hotseat
-            int hotseatTop = isTaskbarPresent ? taskbarSize : hotseatBarSizePx;
+            int hotseatTop = isTaskbarEnabled ? taskbarSize : hotseatBarSizePx;
             return new Rect(mInsets.left + edgeMarginPx,
                     mInsets.top + dropTargetBarSizePx + edgeMarginPx,
                     mInsets.left + availableWidthPx - edgeMarginPx,

@@ -110,10 +110,10 @@ public class Hotseat extends CellLayout implements Insettable {
             mQsb.setVisibility(View.VISIBLE);
             lp.gravity = Gravity.BOTTOM;
             lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            lp.height = (grid.isTaskbarPresent
+            lp.height = (grid.isTaskbarEnabled
                     ? grid.workspacePadding.bottom
                         : grid.hotseatBarSizePx)
-                    + (grid.isTaskbarPresent ? grid.taskbarSize : insets.bottom);
+                    + (grid.isTaskbarEnabled ? grid.taskbarSize : insets.bottom);
         }
 
         Rect padding = grid.getHotseatLayoutPadding(getContext());

@@ -120,8 +120,8 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
     public void onDisplayAdded(int displayId) {
         if (mPreferSecondary) {
             if (isDesktopScreen(mDm.getDisplay(displayId))) {
-                //if (mDisplayId == Display.DEFAULT_DISPLAY)
-                //    System.exit(0); // Taskbar has to rdeattach from main Launcher activity.
+                if (mDisplayId == Display.DEFAULT_DISPLAY)
+                    System.exit(0); // Taskbar has to re-attach from main Launcher activity.
                 taskbarMoveDisplay(displayId);
             }
         }
@@ -208,7 +208,7 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
                                 ? LauncherAppState.getIDP(mContext).getDeviceProfile(mContext)
                                 : null;
 
-                        if (dp != null && dp.isTaskbarEnabled) {
+                        if (dp != null && dp.isTaskbarPresent) {
                             mTaskbarActivityContext.updateDeviceProfile(dp.copy(mContext));
                         }
                         mTaskbarActivityContext.onConfigurationChanged(configDiff);
@@ -305,7 +305,7 @@ public class TaskbarManager implements DisplayController.DisplayInfoChangeListen
                 mUserUnlocked ? LauncherAppState.getIDP(mContext).getDeviceProfile(mContext) : null;
 
         boolean isTaskBarEnabled =
-                FeatureFlags.ENABLE_TASKBAR.get() && dp != null && dp.isTaskbarEnabled;
+                FeatureFlags.ENABLE_TASKBAR.get() && dp != null && dp.isTaskbarPresent;
 
         SystemUiProxy sysui = SystemUiProxy.INSTANCE.get(mContext);
         sysui.setTaskbarEnabled(isTaskBarEnabled);
