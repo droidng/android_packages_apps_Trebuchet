@@ -167,7 +167,7 @@ public class NavbarButtonsViewController {
 
         // Force nav buttons (specifically back button) to be visible during setup wizard.
         boolean isInSetup = !mContext.isUserSetupComplete();
-        boolean alwaysShowButtons = isThreeButtonNav || isInSetup;
+        boolean alwaysShowButtons = !controllers.disableBtnForce() && (isThreeButtonNav || isInSetup);
 
         // Make sure to remove nav bar buttons translation when notification shade is expanded or
         // IME is showing (add separate translation for IME).

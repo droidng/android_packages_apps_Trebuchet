@@ -150,7 +150,7 @@ public class TaskbarActivityContext extends ContextThemeWrapper implements Activ
         mRightCorner = display.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT);
 
         // Construct controllers.
-        mControllers = new TaskbarControllers(this,
+        mControllers = new TaskbarControllers(this, dp,
                 new TaskbarDragController(this),
                 buttonController,
                 new NavbarButtonsViewController(this, navButtonsView),

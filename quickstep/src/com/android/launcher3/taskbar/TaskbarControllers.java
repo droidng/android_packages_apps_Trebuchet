@@ -21,6 +21,8 @@ import androidx.annotation.NonNull;
 
 import com.android.systemui.shared.rotation.RotationButtonController;
 
+import com.android.launcher3.DeviceProfile;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,13 +47,15 @@ public class TaskbarControllers {
     public final TaskbarAutohideSuspendController taskbarAutohideSuspendController;
     public final TaskbarPopupController taskbarPopupController;
 
+    public final DeviceProfile dp;
+
     /** Do not store this controller, as it may change at runtime. */
     @NonNull public TaskbarUIController uiController = TaskbarUIController.DEFAULT;
 
     private boolean mAreAllControllersInitialized;
     private final List<Runnable> mPostInitCallbacks = new ArrayList<>();
 
-    public TaskbarControllers(TaskbarActivityContext taskbarActivityContext,
+    public TaskbarControllers(TaskbarActivityContext taskbarActivityContext, DeviceProfile dp,
             TaskbarDragController taskbarDragController,
             TaskbarNavButtonController navButtonController,
             NavbarButtonsViewController navbarButtonsViewController,
@@ -66,7 +70,7 @@ public class TaskbarControllers {
             TaskbarEduController taskbarEduController,
             TaskbarAutohideSuspendController taskbarAutoHideSuspendController,
             TaskbarPopupController taskbarPopupController) {
-        this.taskbarActivityContext = taskbarActivityContext;
+        this.taskbarActivityContext = taskbarActivityContext; this.dp = dp;
         this.taskbarDragController = taskbarDragController;
         this.navButtonController = navButtonController;
         this.navbarButtonsViewController = navbarButtonsViewController;
@@ -140,5 +144,9 @@ public class TaskbarControllers {
         } else {
             mPostInitCallbacks.add(callback);
         }
+    }
+
+    public boolean disableBtnForce() {
+        return !dp.isTaskbarEnabled;
     }
 }
